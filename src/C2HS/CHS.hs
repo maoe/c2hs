@@ -1233,16 +1233,12 @@ parsePointer hkpos pos toks = do
     let
      (isNewtype, oRefType, toks'4) =
       case toks'3 of
-        CHSTokNewtype _                   :toks'' -> (True , [] , toks'' )
-        CHSTokArrow   _:CHSTokIdent _ ide':toks'' ->
-          let (ides, toks''') = span isIde toks''
-              isIde (CHSTokIdent _ _) = True
-              isIde _                 = False
-              takeId (CHSTokIdent _ i) = i
-          in (False, ide':map takeId ides, toks''')
-        CHSTokArrow   _:CHSTokHSVerb _ hs:toks'' ->
-          (False, map internalIdent $ words hs, toks'')
-        _                                         -> (False, [] , toks'3)
+        CHSTokNewtype _:toks'' ->
+          let (hsType, toks''') = parseHsType toks''
+          in (True, hsType, toks''')
+        _ ->
+          let (hsType, toks'') = parseHsType toks'3
+          in (False, hsType, toks'')
     let
      (emit, toks'5) =
       case toks'4 of
@@ -1263,6 +1259,17 @@ parsePointer hkpos pos toks = do
       return (CHSForeignPtr final, toks'')
     parsePtrType (CHSTokStable _ :toks') = return (CHSStablePtr, toks')
     parsePtrType                  toks'  = return (CHSPtr, toks')
+
+    parseHsType :: [CHSToken] -> ([Ident], [CHSToken])
+    parseHsType (CHSTokArrow _:CHSTokIdent _ ide:toks') =
+      let (ides, toks'') = span isIde toks'
+          isIde (CHSTokIdent _ _) = True
+          isIde _                 = False
+          takeId (CHSTokIdent _ i) = i
+      in (ide:map takeId ides, toks'')
+    parseHsType (CHSTokArrow _:CHSTokHSVerb _ hs:toks') =
+      (map internalIdent $ words hs, toks')
+    parseHsType toks' = ([], toks')
 
     parseFinalizer (CHSTokFinal _ : CHSTokIdent _ ide : toks') = do
       (oalias, toks'') <- parseOptAs ide False toks'

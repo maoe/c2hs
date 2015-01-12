@@ -1451,7 +1451,7 @@ pointerDef :: Bool              -- explicit `*' in pointer hook
            -> GB String
 pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
   do
-    let ptrArg  = if isNewtype
+    let ptrArg  = if isNewtype && hsType == "()"
                   then hsName           -- abstract type
                   else hsType           -- concrete type
         ptrCon  = case ptrKind of
